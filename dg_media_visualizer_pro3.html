@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07090f">
+<title>DG Media Visualizer Pro 2</title>
+<style>
+:root{--bg:#07090f;--panel:#101622;--panel2:#161d2b;--line:#293348;--muted:#929db1;--accent:#7c8cff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}.app{max-width:1200px;margin:auto;padding:16px}
+.brand{display:flex;gap:10px;align-items:center;margin-bottom:14px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#fff,#7585ff);color:#080a11;display:grid;place-items:center;font-weight:900}.brand h1{font-size:20px;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+.layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.78fr);gap:14px}.card{background:linear-gradient(180deg,#111723,#0c111a);border:1px solid var(--line);border-radius:20px;padding:13px;box-shadow:0 12px 35px #0005}
+.stage{position:relative;width:100%;aspect-ratio:16/9;background:#03050a;border-radius:16px;overflow:hidden}.stage canvas{width:100%;height:100%;display:block}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}.song{font-size:clamp(18px,4vw,34px);font-weight:850;letter-spacing:1px;text-shadow:0 4px 25px #000;max-width:85%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.artist{font-size:12px;letter-spacing:3px;color:#c1c8d7;margin-top:8px;text-shadow:0 2px 10px #000}
+.time{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin:9px 0 5px}input[type=range]{width:100%;accent-color:var(--accent)}
+button,select,.text,.file{min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:#fff;padding:0 12px;font-weight:700}button,.file{cursor:pointer}.primary{background:var(--accent);border-color:var(--accent);color:#080a12}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.transport{justify-content:center}.play{min-width:110px}.file{display:inline-flex;align-items:center}.file input{display:none}.controls{display:grid;gap:12px}.sec{border-bottom:1px solid #222b3b;padding-bottom:12px}.sec:last-child{border:0;padding-bottom:0}.st{font-size:11px;color:#b7c0d1;text-transform:uppercase;letter-spacing:1.3px;font-weight:800;margin-bottom:8px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{display:grid;gap:5px}.field label{font-size:11px;color:var(--muted)}select,.text{width:100%;padding:0 9px}.small,.status,.fname{font-size:11px;color:var(--muted);line-height:1.45}input[type="checkbox"]{appearance:none;-webkit-appearance:none;background:#151b28;border:1px solid #39445c;border-radius:6px;display:inline-grid;place-content:center}input[type="checkbox"]:checked:before{content:"✓";font-size:13px;color:#fff}.fname{margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.palette{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}.sw{height:31px;min-height:31px;padding:0;border-radius:8px;border:2px solid #fff3}.sw.active{outline:2px solid #fff;outline-offset:1px}
+.note{background:#0a0e16;border:1px solid #20293a;padding:9px;border-radius:10px;color:#aab4c6;font-size:11px;line-height:1.45}
+@media(max-width:850px){.layout{grid-template-columns:1fr}}@media(max-width:520px){.app{padding:9px}.card{border-radius:16px}.stage{aspect-ratio:9/16}.grid{grid-template-columns:1fr}.palette{grid-template-columns:repeat(6,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="brand"><div class="logo">DG</div><div><h1>DG Media Visualizer Pro 2</h1><div class="sub">Visualizer • video overlay • beat-reactive background • lightning</div></div></div>
+<div class="layout">
+<section class="card">
+<div class="stage" id="stage">
+<canvas id="c"></canvas>
+<div class="overlay"><div class="song" id="song">DG MEDIA</div><div class="artist" id="artist">MUSIC VISUALIZER</div></div>
+</div>
+<div class="time"><span id="cur">00:00</span><span id="dur">00:00</span></div>
+<input id="seek" type="range" min="0" max="100" value="0">
+<div class="row transport" style="margin-top:9px"><button id="back">↶</button><button id="play" class="primary play">▶ Phát</button><button id="forward">↷</button><button id="stop">■</button></div>
+</section>
+
+<aside class="card controls">
+<div class="sec"><div class="st">1 • Nhạc & nền</div>
+<div class="row">
+<label class="file">🎵 Nhạc<input id="af" type="file" accept="audio/*"></label>
+<label class="file">🖼️ Ảnh nền<input id="bgf" type="file" accept="image/*"></label>
+<label class="file">🎞️ Video sóng<input id="vf" type="file" accept="video/*"></label>
+</div>
+<div class="fname" id="an">Chưa chọn bài hát</div>
+<div class="note" style="margin-top:8px">Video sóng được chồng lên khung hình. Có thể chọn <b>Screen</b> để loại nền đen của video hiệu ứng.</div>
+</div>
+
+<div class="sec"><div class="st">2 • Video sóng từ video khác</div>
+<div class="grid">
+<div class="field"><label>Chế độ hòa trộn</label><select id="blend"><option value="screen">Screen • nền đen biến mất</option><option value="lighter">Lighten</option><option value="normal">Normal</option></select></div>
+<div class="field"><label>Độ trong suốt</label><input id="vop" type="range" min="0" max="1" step=".05" value=".9"></div>
+</div>
+<div class="grid" style="margin-top:8px">
+<div class="field"><label>Loại bỏ nền đen</label><select id="keyMode"><option value="screen">Screen + Chroma</option><option value="screenOnly">Screen</option><option value="normal">Không xoá nền</option></select></div>
+<div class="field"><label>Ngưỡng đen</label><input id="keyLevel" type="range" min="0.02" max="0.45" step="0.01" value="0.16"></div>
+</div>
+<div class="grid" style="margin-top:8px">
+<div class="field"><label>Kích thước sóng</label><input id="vscale" type="range" min=".4" max="1.5" step=".05" value="1"></div>
+<div class="field"><label>Vị trí dọc</label><input id="vy" type="range" min="0" max="1" step=".01" value=".5"></div>
+</div>
+</div>
+
+<div class="sec"><div class="st">3 • Ảnh nền giật theo nhạc</div>
+<div class="grid">
+<div class="field"><label>Mức giật</label><input id="shake" type="range" min="0" max="30" step="1" value="8"></div>
+<div class="field"><label>Zoom theo bass</label><input id="zoom" type="range" min="0" max=".16" step=".01" value=".05"></div>
+</div>
+<div class="small" style="margin-top:6px">Bass càng mạnh → ảnh nền rung và phóng nhẹ càng rõ.</div>
+</div>
+
+<div class="sec"><div class="st">4 • Chèn hình ảnh vào giữa</div>
+<label class="file">➕ Chọn hình giữa<input id="midf" type="file" accept="image/*"></label>
+<div class="grid" style="margin-top:8px">
+<div class="field"><label>Kích thước</label><input id="msize" type="range" min=".1" max=".8" step=".01" value=".34"></div>
+<div class="field"><label>Độ trong suốt</label><input id="mop" type="range" min="0" max="1" step=".05" value="1"></div>
+</div>
+<div class="grid" style="margin-top:8px">
+<div class="field"><label>Vị trí X</label><input id="mx" type="range" min="0" max="1" step=".01" value=".5"></div>
+<div class="field"><label>Vị trí Y</label><input id="my" type="range" min="0" max="1" step=".01" value=".5"></div>
+</div>
+</div>
+
+<div class="sec"><div class="st">5 • Màu hiệu ứng & tia sét</div>
+<div class="palette" id="palette">
+<button class="sw active" data-col="#7c8cff" style="background:#7c8cff"></button><button class="sw" data-col="#00e5ff" style="background:#00e5ff"></button><button class="sw" data-col="#ff4fd8" style="background:#ff4fd8"></button><button class="sw" data-col="#55ff9a" style="background:#55ff9a"></button><button class="sw" data-col="#ffb84d" style="background:#ffb84d"></button><button class="sw" data-col="#ff4040" style="background:#ff4040"></button><button class="sw" data-col="#b86cff" style="background:#b86cff"></button><button class="sw" data-col="#fff" style="background:#fff"></button><button class="sw" data-col="#ffd400" style="background:#ffd400"></button><button class="sw" data-col="#00ffb7" style="background:#00ffb7"></button><button class="sw" data-col="#ff7b00" style="background:#ff7b00"></button><button class="sw" data-col="#8c52ff" style="background:#8c52ff"></button><button class="sw" data-col="#ff2f92" style="background:#ff2f92"></button><button class="sw" data-col="#39ff14" style="background:#39ff14"></button><button class="sw" data-col="#00aaff" style="background:#00aaff"></button><button class="sw" data-col="#f5f5f5" style="background:#f5f5f5"></button>
+</div>
+<div class="grid" style="margin-top:9px">
+<div class="field"><label>Chế độ tia sét</label><select id="lightning"><option value="off">Tắt</option><option value="beat">Theo bass</option><option value="random">Nhấp ngẫu nhiên</option></select></div>
+<div class="field"><label>Cường độ sét</label><input id="lint" type="range" min="0" max="1" step=".05" value=".65"></div>
+</div>
+</div>
+
+<div class="sec"><div class="st">6 • Visualizer</div>
+<div class="row" style="margin-bottom:8px">
+<label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#c4ccda">
+<input id="vizOn" type="checkbox" checked style="width:20px;height:20px;accent-color:var(--accent)"> Bật sóng nhạc mặc định
+</label>
+</div>
+<div class="grid">
+<div class="field"><label>Kiểu</label><select id="mode"><option value="bars">Spectrum Bars</option><option value="wave">Waveform</option><option value="circle">Circle Spectrum</option><option value="mirror">Mirror Bars</option><option value="dots">Particles</option></select></div>
+<div class="field"><label>Tỉ lệ</label><select id="ratio"><option value="16/9">16:9 • YouTube</option><option value="9/16">9:16 • TikTok</option><option value="1/1">1:1 • Social</option></select></div>
+</div>
+<div class="field" style="margin-top:8px"><label>Độ nhạy bass</label><input id="sens" type="range" min=".5" max="2.5" step=".05" value="1.25"></div>
+</div>
+
+<div class="sec"><div class="st">7 • Chữ</div><div class="grid"><input class="text" id="ti" value="DG MEDIA" placeholder="Tên bài hát"><input class="text" id="ai" value="DG MEDIA" placeholder="Nghệ sĩ / kênh"></div></div>
+
+<div class="sec"><div class="st">8 • Xuất</div><button id="export" class="primary" style="width:100%">🎬 Xuất video WebM</button><div class="status" id="status"></div></div>
+</aside>
+</div>
+</div>
+<audio id="audio" preload="metadata"></audio><video id="overlayVideo" muted playsinline loop></video>
+
+<script>
+(()=> {
+const $=id=>document.getElementById(id),c=$('c'),x=c.getContext('2d'),stage=$('stage'),audio=$('audio'),ov=$('overlayVideo');
+let ac=null,an=null,src=null,fq=null,td=null,aurl=null,bgurl=null,murl=null,vurl=null,bg=null,mid=null,col='#7c8cff',raf=0,seed=0;
+
+function setup(){if(ac)return;ac=new(window.AudioContext||window.webkitAudioContext)();an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.8;src=ac.createMediaElementSource(audio);src.connect(an);an.connect(ac.destination);fq=new Uint8Array(an.frequencyBinCount);td=new Uint8Array(an.fftSize)}
+function resize(){let r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);c.width=r.width*d;c.height=r.height*d;x.setTransform(d,0,0,d,0,0)}
+function fitImage(im,w,h,scale=1){let ir=im.width/im.height,ar=w/h,sw,sh,sx,sy;if(ir>ar){sh=im.height;sw=sh*ar;sx=(im.width-sw)/2;sy=0}else{sw=im.width;sh=sw/ar;sx=0;sy=(im.height-sh)/2}return{x:sx,y:sy,w:sw,h:sh}}
+function hexAlpha(h,a){return h+(Math.round(Math.max(0,Math.min(1,a))*255)).toString(16).padStart(2,'0')}
+function drawLightning(w,h,energy){
+ const mode=$('lightning').value, intensity=+$('lint').value;if(mode==='off'||energy<.45)return;
+ let chance=mode==='beat'?energy*.24:.055;if(Math.random()>chance)return;
+ const startX=Math.random()*w,startY=Math.random()*h*.65,endX=startX+(Math.random()-.5)*w*.45,endY=startY+h*(.18+Math.random()*.45);
+ x.save();x.globalAlpha=intensity*(.45+energy*.55);x.strokeStyle=col;x.lineWidth=1+energy*2.2;x.shadowColor=col;x.shadowBlur=18;x.beginPath();x.moveTo(startX,startY);
+ let seg=7;for(let i=1;i<=seg;i++){let t=i/seg,xx=startX+(endX-startX)*t+(Math.random()-.5)*28,yy=startY+(endY-startY)*t;x.lineTo(xx,yy)}x.stroke();x.restore();
+}
+
+const keyCanvas=document.createElement('canvas');
+const keyCtx=keyCanvas.getContext('2d',{willReadFrequently:true});
+function drawVideoOverlay(w,h,energy){
+  if(!ov.src || ov.readyState<2) return;
+  const blend=$('blend').value, op=+$('vop').value, scale=+$('vscale').value;
+  const y=$('vy').value*h, ww=w*scale;
+  const vh=ov.videoHeight||1, vw=ov.videoWidth||1, hh=ww*vh/vw;
+  const mode=$('keyMode').value, level=+$('keyLevel').value;
+
+  if(mode==='normal'){
+    x.save();
+    x.globalAlpha=op;
+    x.globalCompositeOperation='source-over';
+    x.drawImage(ov,(w-ww)/2,y-hh/2,ww,hh);
+    x.restore();
+    return;
+  }
+
+  // Render the video to an offscreen canvas, remove near-black pixels,
+  // then composite the cleaned frame. This works better than CSS blend mode.
+  keyCanvas.width=Math.max(1,Math.floor(ww));
+  keyCanvas.height=Math.max(1,Math.floor(hh));
+  keyCtx.clearRect(0,0,keyCanvas.width,keyCanvas.height);
+  keyCtx.drawImage(ov,0,0,keyCanvas.width,keyCanvas.height);
+  const imgData=keyCtx.getImageData(0,0,keyCanvas.width,keyCanvas.height);
+  const px=imgData.data;
+  const threshold=Math.round(level*255);
+  for(let i=0;i<px.length;i+=4){
+    const r=px[i],g=px[i+1],b=px[i+2];
+    const max=Math.max(r,g,b), min=Math.min(r,g,b);
+    // Remove dark neutral pixels; preserve colored/bright light effects.
+    if(max<=threshold && (max-min)<Math.max(18,threshold*.35)){
+      px[i+3]=0;
+    }else if(max<threshold*1.7){
+      px[i+3]=Math.max(0,Math.round((max-threshold)/(threshold*.7)*255));
+    }
+  }
+  keyCtx.putImageData(imgData,0,0);
+
+  x.save();
+  x.globalAlpha=op;
+  x.globalCompositeOperation=blend==='lighter'?'lighter':'source-over';
+  x.drawImage(keyCanvas,(w-ww)/2,y-hh/2,ww,hh);
+  x.restore();
+}
+
+function draw(){
+ let w=c.clientWidth,h=c.clientHeight;x.clearRect(0,0,w,h);
+ let energy=0;if(an){an.getByteFrequencyData(fq);an.getByteTimeDomainData(td);for(let i=0;i<Math.min(24,fq.length);i++)energy+=fq[i]/255;energy/=Math.min(24,fq.length)}
+ if(bg&&bg.complete){let fit=fitImage(bg,w,h),shake=+$('shake').value*energy,zoom=+$('zoom').value*energy,sx=(Math.random()-.5)*shake,sy=(Math.random()-.5)*shake,z=1+zoom;x.save();x.translate(w/2+sx,h/2+sy);x.scale(z,z);x.drawImage(bg,fit.x,fit.y,fit.w,fit.h,-fit.w/2,-fit.h/2,fit.w,fit.h);x.restore()}else{x.fillStyle='#03050a';x.fillRect(0,0,w,h)}
+ let grad=x.createLinearGradient(0,0,0,h),bright=+$('bright')?.value||.55;grad.addColorStop(0,`rgba(0,0,0,${.76-bright*.3})`);grad.addColorStop(1,'rgba(0,0,0,.82)');x.fillStyle=grad;x.fillRect(0,0,w,h);
+
+ if(an && $('vizOn').checked){let s=+$('sens').value,n=72,step=Math.max(1,Math.floor(fq.length/n)),m=$('mode').value;x.save();x.shadowColor=col+'99';x.shadowBlur=14;x.lineCap='round';
+ if(m==='wave'){x.beginPath();x.lineWidth=3;x.strokeStyle=col;for(let i=0;i<td.length;i+=3){let xx=i/(td.length-1)*w,y=h*.58+(td[i]-128)/128*h*.23*s;i?x.lineTo(xx,y):x.moveTo(xx,y)}x.stroke()}
+ else if(m==='circle'){let cx=w/2,cy=h*.56,base=Math.min(w,h)*.16;x.beginPath();for(let i=0;i<n;i++){let v=Math.min(1,fq[i*step]/255*s),a=i/n*Math.PI*2-Math.PI/2,r=base+v*Math.min(w,h)*.25,xx=cx+Math.cos(a)*r,yy=cy+Math.sin(a)*r;i?x.lineTo(xx,yy):x.moveTo(xx,yy)}x.closePath();x.lineWidth=3;x.strokeStyle=col;x.stroke()}
+ else if(m==='dots'){for(let i=0;i<n;i++){let v=Math.min(1,fq[i*step]/255*s),xx=(i+.5)/n*w,yy=h*.8-v*h*.62,r=1.5+v*5;x.fillStyle=col;x.beginPath();x.arc(xx,yy,r,0,Math.PI*2);x.fill()}}
+ else{let bw=w/n*.72,gap=w/n*.28;for(let i=0;i<n;i++){let v=Math.min(1,fq[i*step]/255*s),bh=5+v*h*.34,xx=i*w/n+gap/2;x.fillStyle=col;if(m==='mirror'){x.fillRect(xx,h*.56-bh,bw,bh);x.fillRect(xx,h*.56,bw,bh)}else x.fillRect(xx,h-bh,bw,bh)}}x.restore()}
+ drawLightning(w,h,energy);
+
+ drawVideoOverlay(w,h,energy);
+ if(mid&&mid.complete){let size=Math.min(w,h)*+$('msize').value,fit=fitImage(mid,size,size),mx=w*+$('mx').value,my=h*+$('my').value;x.save();x.globalAlpha=+$('mop').value; x.shadowColor=col;x.shadowBlur=20+energy*30;x.beginPath();x.arc(mx,my,size/2,0,Math.PI*2);x.clip();x.drawImage(mid,fit.x,fit.y,fit.w,fit.h,mx-size/2,my-size/2,size,size);x.restore();x.save();x.globalAlpha=.5+energy*.5;x.strokeStyle=col;x.lineWidth=2;x.shadowColor=col;x.shadowBlur=12;x.beginPath();x.arc(mx,my,size/2,0,Math.PI*2);x.stroke();x.restore()}
+ raf=requestAnimationFrame(draw)
+}
+
+$('af').onchange=e=>{let f=e.target.files[0];if(!f)return;if(aurl)URL.revokeObjectURL(aurl);aurl=URL.createObjectURL(f);audio.src=aurl;audio.load();$('an').textContent=f.name;let n=f.name.replace(/\.[^/.]+$/,'');$('ti').value=n;$('song').textContent=n;setup()};
+$('bgf').onchange=e=>{let f=e.target.files[0];if(!f)return;if(bgurl)URL.revokeObjectURL(bgurl);bgurl=URL.createObjectURL(f);bg=new Image();bg.src=bgurl};
+$('midf').onchange=e=>{let f=e.target.files[0];if(!f)return;if(murl)URL.revokeObjectURL(murl);murl=URL.createObjectURL(f);mid=new Image();mid.src=murl};
+$('vf').onchange=e=>{let f=e.target.files[0];if(!f)return;if(vurl)URL.revokeObjectURL(vurl);vurl=URL.createObjectURL(f);ov.src=vurl;ov.load();ov.play().catch(()=>{})};
+$('play').onclick=async()=>{if(!audio.src){$('status').textContent='Hãy chọn bài hát trước.';return}setup();if(ac.state==='suspended')await ac.resume();if(audio.paused){await audio.play();if(ov.src)ov.play().catch(()=>{});$('play').textContent='❚❚ Tạm dừng'}else{audio.pause();$('play').textContent='▶ Phát'}};
+$('stop').onclick=()=>{audio.pause();audio.currentTime=0;ov.pause();if(ov.src)ov.currentTime=0;$('play').textContent='▶ Phát'};
+$('back').onclick=()=>audio.currentTime=Math.max(0,audio.currentTime-10);$('forward').onclick=()=>audio.currentTime=Math.min(audio.duration||0,audio.currentTime+10);
+audio.onloadedmetadata=()=>{$('dur').textContent=fmt(audio.duration)};audio.ontimeupdate=()=>{$('cur').textContent=fmt(audio.currentTime);if(audio.duration)$('seek').value=audio.currentTime/audio.duration*100};$('seek').oninput=e=>{if(audio.duration)audio.currentTime=+e.target.value/100*audio.duration;if(ov.duration)ov.currentTime=audio.currentTime%ov.duration};
+$('ti').oninput=e=>$('song').textContent=e.target.value||'DG MEDIA';$('ai').oninput=e=>$('artist').textContent=e.target.value||'DG MEDIA';$('ratio').onchange=()=>{stage.style.aspectRatio=$('ratio').value;resize()};
+$('vizOn').onchange=()=>{$('status').textContent=$('vizOn').checked?'Đã bật sóng nhạc mặc định.':'Đã tắt sóng nhạc mặc định.'};
+$('palette').onclick=e=>{let z=e.target.closest('.sw');if(!z)return;col=z.dataset.col;document.querySelectorAll('.sw').forEach(q=>q.classList.remove('active'));z.classList.add('active')};
+
+function fmt(s){s=Math.max(0,Math.floor(s||0));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+$('export').onclick=async()=>{let st=$('status');if(!audio.src){st.textContent='Hãy chọn bài hát trước.';return}if(!window.MediaRecorder||!c.captureStream){st.textContent='Trình duyệt này chưa hỗ trợ xuất video.';return}setup();if(ac.state==='suspended')await ac.resume();let vs=c.captureStream(30),dest=ac.createMediaStreamDestination();an.connect(dest);let tracks=[...vs.getVideoTracks(),...dest.stream.getAudioTracks()],mime='video/webm;codecs=vp9,opus';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';let rec=new MediaRecorder(new MediaStream(tracks),{mimeType:mime,videoBitsPerSecond:6500000}),chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);rec.onstop=()=>{let blob=new Blob(chunks,{type:mime}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=(($('ti').value||'DG-Media')+'.webm').replace(/[\\/:*?"<>|]/g,'-');a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);st.textContent='Đã xuất video WebM.'};audio.currentTime=0;if(ov.src)ov.currentTime=0;st.textContent='Đang xuất… hãy chờ bài hát kết thúc.';await audio.play();if(ov.src)ov.play().catch(()=>{});rec.start(250);audio.onended=()=>{rec.stop();dest.disconnect()}};
+
+window.onresize=resize;stage.style.aspectRatio='16/9';resize();draw();
+})();
+</script></body></html>
