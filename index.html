@@ -1,1 +1,187 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>DG Media Music Visualizer</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080a10;color:#fff;font-family:Arial,sans-serif}
+.app{max-width:900px;margin:auto;padding:18px}.top{text-align:center;margin-bottom:14px}
+h1{font-size:24px;margin:4px 0 6px}.muted{color:#9ba5b8;font-size:13px}
+.panel{background:#111622;border:1px solid #273044;border-radius:18px;padding:14px}
+.stage{position:relative;background:#05070b;border-radius:14px;overflow:hidden;aspect-ratio:16/9}
+canvas{width:100%;height:100%;display:block}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.overlay h2{margin:0;font-size:26px;letter-spacing:3px;text-shadow:0 2px 15px #000}
+.overlay p{margin:7px 0;color:#aeb7c9;font-size:12px;letter-spacing:1px}
+.controls{display:grid;gap:10px;margin-top:12px}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+button,.file{min-height:44px;border:1px solid #39445c;border-radius:12px;background:#1a2030;color:white;padding:0 15px;font-weight:700;cursor:pointer}
+button:hover,.file:hover{background:#252d41}
+input[type=file]{display:none}.file{display:inline-flex;align-items:center}
+select,input[type=range]{min-height:44px;background:#151b28;color:white;border:1px solid #39445c;border-radius:10px;padding:8px}
+label{font-size:13px;color:#aeb7c9}
+.info{margin-top:10px;font-size:13px;color:#aeb7c9;word-break:break-word}
+@media(max-width:520px){.app{padding:10px}h1{font-size:20px}.stage{aspect-ratio:9/16;max-height:72vh}.overlay h2{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>🎵 DG Media Music Visualizer</h1>
+    <div class="muted">Tải nhạc → phát → sóng nhạc phản ứng theo âm thanh thực tế</div>
+  </div>
+  <div class="panel">
+    <div class="stage">
+      <canvas id="visual"></canvas>
+      <div class="overlay">
+        <h2 id="title">DG MEDIA</h2>
+        <p id="subtitle">MUSIC VISUALIZER</p>
+      </div>
+    </div>
 
+    <div class="controls">
+      <div class="row">
+        <label class="file">🎵 Chọn nhạc
+          <input id="file" type="file" accept="audio/*">
+        </label>
+        <button id="play" type="button">▶ Phát</button>
+        <button id="stop" type="button">■ Dừng</button>
+      </div>
+
+      <div class="row">
+        <label>Kiểu:
+          <select id="mode">
+            <option value="bars">Sóng cột</option>
+            <option value="wave">Waveform</option>
+            <option value="circle">Vòng tròn</option>
+            <option value="mirror">Mirror</option>
+          </select>
+        </label>
+        <label>Tỉ lệ:
+          <select id="ratio">
+            <option value="16/9">16:9 YouTube</option>
+            <option value="9/16">9:16 TikTok</option>
+            <option value="1/1">1:1</option>
+          </select>
+        </label>
+        <label>Độ nhạy
+          <input id="sens" type="range" min=".5" max="2.5" step=".1" value="1.2">
+        </label>
+      </div>
+      <div class="info" id="info">Chưa chọn file nhạc.</div>
+    </div>
+  </div>
+</div>
+
+<audio id="audio" crossorigin="anonymous"></audio>
+
+<script>
+const canvas=document.getElementById('visual');
+const ctx=canvas.getContext('2d');
+const audio=document.getElementById('audio');
+const fileInput=document.getElementById('file');
+const playBtn=document.getElementById('play');
+const stopBtn=document.getElementById('stop');
+const modeSel=document.getElementById('mode');
+const ratioSel=document.getElementById('ratio');
+const sens=document.getElementById('sens');
+const info=document.getElementById('info');
+const title=document.getElementById('title');
+let ac=null, analyser=null, source=null, data=null, raf=0, objectURL=null;
+
+function resize(){
+  const r=canvas.getBoundingClientRect(), d=Math.min(devicePixelRatio||1,2);
+  canvas.width=Math.max(1,Math.floor(r.width*d));
+  canvas.height=Math.max(1,Math.floor(r.height*d));
+  ctx.setTransform(d,0,0,d,0,0);
+}
+function resizeStage(){
+  document.querySelector('.stage').style.aspectRatio=ratioSel.value;
+  resize();
+}
+window.addEventListener('resize',resize); ratioSel.addEventListener('change',resizeStage);
+
+function setupAudio(){
+  if(ac) return;
+  ac=new (window.AudioContext||window.webkitAudioContext)();
+  analyser=ac.createAnalyser();
+  analyser.fftSize=1024;
+  analyser.smoothingTimeConstant=.78;
+  source=ac.createMediaElementSource(audio);
+  source.connect(analyser);
+  analyser.connect(ac.destination);
+  data=new Uint8Array(analyser.frequencyBinCount);
+}
+function draw(){
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  const g=ctx.createRadialGradient(w*.5,h*.5,10,w*.5,h*.5,Math.max(w,h)*.7);
+  g.addColorStop(0,'#17223b');g.addColorStop(1,'#03050a');
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  if(!analyser){requestAnimationFrame(draw);return}
+  analyser.getByteFrequencyData(data);
+  const mode=modeSel.value, s=parseFloat(sens.value);
+  const bars=80, step=Math.max(1,Math.floor(data.length/bars));
+  ctx.lineCap='round';
+
+  if(mode==='bars'||mode==='mirror'){
+    const gap=2, bw=w/bars-gap;
+    for(let i=0;i<bars;i++){
+      let v=data[i*step]/255*s; v=Math.min(1,v);
+      const bh=Math.max(3,v*h*.42);
+      const x=i*w/bars+gap/2;
+      const grad=ctx.createLinearGradient(0,h/2-bh,0,h/2+bh);
+      grad.addColorStop(0,'#ffffff');grad.addColorStop(.3,'#8da7ff');grad.addColorStop(1,'#4f6dff');
+      ctx.fillStyle=grad;
+      if(mode==='mirror'){
+        ctx.fillRect(x,h/2-bh,bw,bh);
+        ctx.fillRect(x,h/2,bw,bh);
+      }else{
+        ctx.fillRect(x,h-bh,bw,bh);
+      }
+    }
+  } else if(mode==='wave'){
+    analyser.getByteTimeDomainData(data);
+    ctx.beginPath();ctx.lineWidth=3;ctx.strokeStyle='#8da7ff';
+    for(let i=0;i<data.length;i++){
+      const x=i/(data.length-1)*w;
+      const y=h/2+(data[i]-128)/128*h*.38*s;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  } else {
+    const cx=w/2,cy=h/2,base=Math.min(w,h)*.16;
+    ctx.beginPath();ctx.lineWidth=3;
+    for(let i=0;i<bars;i++){
+      const v=Math.min(1,data[i*step]/255*s);
+      const a=i/bars*Math.PI*2-Math.PI/2;
+      const rr=base+v*Math.min(w,h)*.22;
+      const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.strokeStyle='#8da7ff';ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,base*.72,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,.25)';ctx.stroke();
+  }
+  raf=requestAnimationFrame(draw);
+}
+fileInput.addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  if(objectURL)URL.revokeObjectURL(objectURL);
+  objectURL=URL.createObjectURL(f);
+  audio.src=objectURL; title.textContent=f.name.replace(/\.[^/.]+$/,'').slice(0,28);
+  info.textContent='Đã chọn: '+f.name;
+  setupAudio();
+});
+playBtn.addEventListener('click',async()=>{
+  if(!audio.src){info.textContent='Hãy chọn một file nhạc trước.';return}
+  setupAudio(); if(ac.state==='suspended')await ac.resume();
+  await audio.play(); playBtn.textContent='❚❚ Đang phát';
+});
+stopBtn.addEventListener('click',()=>{audio.pause();audio.currentTime=0;playBtn.textContent='▶ Phát'});
+audio.addEventListener('pause',()=>{if(audio.currentTime>0)playBtn.textContent='▶ Tiếp tục'});
+resizeStage();draw();
+</script>
+</body>
+</html>
